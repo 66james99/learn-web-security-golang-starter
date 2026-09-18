@@ -1,8 +1,26 @@
-FROM golang:1.27.0-alpine
+FROM golang:1.27.0-alpine AS build
 
-WORKDIR /app
+WORKDIR /src
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
+RUN CGO_ENABLED=0 go build -o /out/bearly-secure ./cmd/server \
+	&& CGO_ENABLED=0 go build -o /out/bearly-attacker-lab ./cmd/attackerlab
+
+FROM alpine:3.22
+
+WORKDIR /app
+RUN apk add --no-cache ca-certificates \
+	&& adduser -s -g bearly bearly -D \
+	&& mkdir -p /app/data/uploads \
+	&& chown bearly:bearly ./data
+
+COPY --from=build /out/bearly-secure ./bearly-secure
+COPY --from=build /out/bearly-attacker-lab ./bearly-attacker-lab
+COPY --from=build /src/attacker-lab ./attacker-lab
+COPY --from=build /src/web ./web
+COPY --from=build /src/data/uploads/mystery-shack-tax-exemption.pdf ./data/uploads/mystery-shack-tax-exemption.pdf
+
+USER bearly
 EXPOSE 3030 4040
-CMD ["go", "run", "./cmd/server"]
+CMD ["./bearly-secure"]

@@ -56,6 +56,7 @@ func run(ctx context.Context) error {
 		MaxRequestBodyBytes:     appConfig.MaxRequestBodyBytes,
 		MaxUploadBytes:          appConfig.MaxUploadBytes,
 		PawPalAPIKey:            appConfig.PawPalAPIKey,
+		DownloadSigningKey:      appConfig.DownloadSigningKey,
 		AcornFulfillmentDelay:   appConfig.AcornFulfillmentDelay,
 		DataDirectory:           filepath.Join(workingDirectory, "data"),
 		FixtureDirectory:        filepath.Join(workingDirectory, "data", "fixtures"),

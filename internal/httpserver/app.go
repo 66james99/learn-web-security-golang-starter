@@ -2,7 +2,6 @@ package httpserver
 
 import (
 	"context"
-	"crypto/rand"
 	"database/sql"
 	"fmt"
 	"net/http"
@@ -44,6 +43,7 @@ type Options struct {
 	MaxRequestBodyBytes     int64
 	MaxUploadBytes          int64
 	PawPalAPIKey            string
+	DownloadSigningKey      [32]byte
 	AcornFulfillmentDelay   time.Duration
 	EncryptionKeyring       *storage.Keyring
 	DataDirectory           string
@@ -100,10 +100,6 @@ func New(database *sql.DB, logger *logging.Logger, options Options) (*Applicatio
 		logger,
 		unboundedPublicProductResults,
 	)
-	var downloadSigningKey [32]byte
-	if _, err := rand.Read(downloadSigningKey[:]); err != nil {
-		return nil, fmt.Errorf("generate download signing key: %w", err)
-	}
 	uploadHandler := uploads.NewHandler(
 		accountStore,
 		uploadStore,
@@ -112,7 +108,7 @@ func New(database *sql.DB, logger *logging.Logger, options Options) (*Applicatio
 		options.EncryptionKeyring,
 		uploadDirectory,
 		defaultUploadBytes,
-		downloadSigningKey,
+		options.DownloadSigningKey,
 	)
 	adminHandler := admin.NewHandler(admin.NewStore(database), accountStore, renderer, logger, imagepreview.NewService(), options.MaxUploadBytes)
 	apiHandler := api.NewHandler(accountStore, orderStore, productStore, api.NewStore(database), logger, unboundedPublicProductResults)
@@ -147,6 +143,7 @@ func New(database *sql.DB, logger *logging.Logger, options Options) (*Applicatio
 	dynamicMux.HandleFunc("GET /api/account/orders", apiHandler.AccountOrders)
 	dynamicMux.HandleFunc("GET /api/orders/{id}", apiHandler.Order)
 	dynamicMux.HandleFunc("GET /api/products", apiHandler.Products)
+	dynamicMux.HandleFunc("OPTIONS /api/products", apiHandler.ProductsOptions)
 	dynamicMux.HandleFunc("GET /api/integrations/warehouse/orders", apiHandler.WarehouseOrders)
 	dynamicMux.Handle("POST /products/{id}/reviews", parseForm(options.MaxRequestBodyBytes, renderer)(http.HandlerFunc(reviewHandler.Create)))
 	dynamicMux.HandleFunc("GET /login", authenticationHandler.LoginPage)
@@ -215,28 +212,32 @@ func New(database *sql.DB, logger *logging.Logger, options Options) (*Applicatio
 		}
 	})
 
-	dynamicHandler := permissiveCORS(dynamicMux)
+	dynamicHandler := applyMiddleware(
+		dynamicMux,
+		sameOrigin(options.AppOrigin, renderer),
+	)
 
 	mainMux := http.NewServeMux()
 	mainMux.HandleFunc("GET /health", func(responseWriter http.ResponseWriter, _ *http.Request) {
 		httpx.RespondWithJSON(responseWriter, http.StatusOK, map[string]any{"ok": true, "app": "bearly-secure"})
 	})
 	staticHandler := newStaticHandler(publicRoot)
+	widgetCssHandler := withCrossOriginResourcePolicy(staticHandler, "cross-origin")
+	widgetJsHandler := withCrossOriginResourcePolicy(staticHandler, "cross-origin")
 	mainMux.Handle("GET /reset.css", staticHandler)
 	mainMux.Handle("GET /styles.css", staticHandler)
 	mainMux.Handle("GET /passkey.js", staticHandler)
 	mainMux.Handle("GET /vendor/simplewebauthn/index.umd.min.js", staticHandler)
-	mainMux.Handle("GET /shipping-widget.css", staticHandler)
+	mainMux.Handle("GET /shipping-widget.css", widgetCssHandler)
 	mainMux.Handle("GET /shipping-widget.html", staticHandler)
-	mainMux.Handle("GET /shipping-widget.js", staticHandler)
+	mainMux.Handle("GET /shipping-widget.js", widgetJsHandler)
 	mainMux.Handle("GET /product-photos/{filename}", staticHandler)
 	mainMux.HandleFunc("POST /integrations/pawpal/webhook", pawPalHandler.Webhook)
 	mainMux.Handle("/", dynamicHandler)
 
 	handler := applyMiddleware(
 		mainMux,
-		noSniff,
-		cspNonce,
+		securityHeaders,
 		recoverPanics(logger, renderer),
 	)
 	return &Application{Handler: handler, publicRoot: publicRoot}, nil
@@ -256,5 +257,12 @@ func newStaticHandler(publicRoot *os.Root) http.Handler {
 			return
 		}
 		fileServer.ServeHTTP(responseWriter, request)
+	})
+}
+
+func withCrossOriginResourcePolicy(next http.Handler, policy string) http.Handler {
+	return http.HandlerFunc(func(responseWriter http.ResponseWriter, request *http.Request) {
+		responseWriter.Header().Set("Cross-Origin-Resource-Policy", policy)
+		next.ServeHTTP(responseWriter, request)
 	})
 }

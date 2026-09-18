@@ -11,6 +11,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/joho/godotenv"
 )
 
 const (
@@ -27,6 +29,7 @@ const (
 
 type Config struct {
 	PawPalAPIKey               string
+	DownloadSigningKey         [32]byte
 	AppOrigin                  string
 	Port                       int
 	DatabasePath               string
@@ -43,14 +46,27 @@ type AttackerLabConfig struct {
 }
 
 func Load(workingDirectory string) (Config, error) {
-	return Parse(processEnvironment(), workingDirectory)
+	return Parse(loadEnvironment(workingDirectory), workingDirectory)
 }
 
 func LoadAttackerLab(workingDirectory string) (AttackerLabConfig, error) {
-	return ParseAttackerLab(processEnvironment())
+	return ParseAttackerLab(loadEnvironment(workingDirectory))
 }
 
 func Parse(environment map[string]string, workingDirectory string) (Config, error) {
+	pawPalAPIKey, err := requiredValue(environment, "PAWPAL_API_KEY")
+	if err != nil {
+		return Config{}, err
+	}
+	downloadSigningKeyString, err := requiredValue(environment, "DOWNLOAD_SIGNING_KEY")
+	if err != nil {
+		return Config{}, err
+	}
+	downloadSigningKey, err := parseDownloadSigningKey(downloadSigningKeyString)
+	if err != nil {
+		return Config{}, err
+	}
+
 	port, err := parseNonNegativeInteger(valueOrDefault(environment, "PORT", strconv.Itoa(defaultPort)), "PORT")
 	if err != nil {
 		return Config{}, err
@@ -79,7 +95,8 @@ func Parse(environment map[string]string, workingDirectory string) (Config, erro
 	}
 
 	return Config{
-		PawPalAPIKey:               "bs_test_pawpal_starter_key",
+		PawPalAPIKey:               pawPalAPIKey,
+		DownloadSigningKey:         downloadSigningKey,
 		AppOrigin:                  appOrigin,
 		Port:                       port,
 		DatabasePath:               databasePath,
@@ -103,6 +120,27 @@ func ParseAttackerLab(environment map[string]string) (AttackerLabConfig, error) 
 	return AttackerLabConfig{Port: port}, nil
 }
 
+func loadEnvironment(workingDirectory string) map[string]string {
+	environment := make(map[string]string)
+	if dotEnvPath := filepath.Join(workingDirectory, ".env"); fileExists(dotEnvPath) {
+		values, err := godotenv.Read(dotEnvPath)
+		if err == nil {
+			for name, value := range values {
+				environment[name] = value
+			}
+		}
+	}
+	for name, value := range processEnvironment() {
+		environment[name] = value
+	}
+	return environment
+}
+
+func fileExists(path string) bool {
+	_, err := os.Stat(path)
+	return err == nil
+}
+
 func processEnvironment() map[string]string {
 	environment := make(map[string]string)
 	for _, entry := range os.Environ() {
@@ -119,6 +157,22 @@ func valueOrDefault(environment map[string]string, name, fallback string) string
 		return value
 	}
 	return fallback
+}
+
+func requiredValue(environment map[string]string, name string) (string, error) {
+	value := environment[name]
+	if value == "" {
+		return "", fmt.Errorf("missing required environment variable: %s", name)
+	}
+	return value, nil
+}
+
+func parseDownloadSigningKey(value string) ([32]byte, error) {
+	decoded, err := hex.DecodeString(value)
+	if err != nil || len(decoded) != 32 {
+		return [32]byte{}, errors.New("DOWNLOAD_SIGNING_KEY must be exactly 64 hexadecimal characters")
+	}
+	return [32]byte(decoded), nil
 }
 
 func parseNonNegativeInteger(value, name string) (int, error) {

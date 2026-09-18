@@ -38,6 +38,12 @@ func (logger *Logger) Event(eventName string, fields map[string]any) error {
 	}
 	maps.Copy(record, fields)
 
+	for _, sensitiveKey := range []string{"sessionId", "resetToken", "resetLink", "secret", "adminNotes", "storagePath"} {
+		if _, ok := record[sensitiveKey]; ok {
+			record[sensitiveKey] = "[REDACTED]"
+		}
+	}
+
 	logger.mutex.Lock()
 	defer logger.mutex.Unlock()
 	if err := json.NewEncoder(logger.file).Encode(record); err != nil {
