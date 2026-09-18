@@ -36,7 +36,7 @@ func RespondWithErrorPage(responseWriter http.ResponseWriter, renderer *template
 		message = "The request failed. Try again, or return to the store."
 	}
 	return renderer.Render(responseWriter, statusCode, "error", templates.ErrorPage{
-		Title:      title,
+		Page:       templates.Page{Title: title},
 		StatusCode: statusCode,
 		Message:    message,
 	})

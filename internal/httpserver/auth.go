@@ -259,7 +259,7 @@ func (handler *authHandler) Logout(responseWriter http.ResponseWriter, request *
 
 func (handler *authHandler) renderLogin(responseWriter http.ResponseWriter, statusCode int, errorMessage, returnTo string) error {
 	return handler.renderer.Render(responseWriter, statusCode, "login", authPage{
-		Title:    "Log In",
+		Page:     templates.Page{Title: "Log In"},
 		Error:    errorMessage,
 		ReturnTo: returnTo,
 	})
@@ -267,7 +267,7 @@ func (handler *authHandler) renderLogin(responseWriter http.ResponseWriter, stat
 
 func (handler *authHandler) renderSignup(responseWriter http.ResponseWriter, statusCode int, errorMessage string) error {
 	return handler.renderer.Render(responseWriter, statusCode, "signup", authPage{
-		Title: "Create Account",
+		Page:  templates.Page{Title: "Create Account"},
 		Error: errorMessage,
 	})
 }

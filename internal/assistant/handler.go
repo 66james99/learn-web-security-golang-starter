@@ -70,7 +70,7 @@ func (handler *Handler) requireAuthentication(responseWriter http.ResponseWriter
 
 func (handler *Handler) render(responseWriter http.ResponseWriter, request *http.Request, statusCode int, displayName, answer string) {
 	if err := handler.renderer.Render(responseWriter, statusCode, "assistant", page{
-		Title: "Order Assistant", DisplayName: displayName, Answer: answer,
+		Page: templates.Page{Title: "Order Assistant"}, DisplayName: displayName, Answer: answer,
 	}); err != nil {
 		handler.internalError(responseWriter, request, err)
 	}

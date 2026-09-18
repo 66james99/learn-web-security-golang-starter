@@ -47,7 +47,7 @@ func (handler *Handler) List(responseWriter http.ResponseWriter, request *http.R
 		return
 	}
 	view := listPageView{
-		Title:       "Your Orders",
+		Page:        templates.Page{Title: "Your Orders"},
 		DisplayName: current.User.DisplayName,
 		Orders:      userOrders,
 		HasOrders:   len(userOrders) > 0,
@@ -82,7 +82,7 @@ func (handler *Handler) Detail(responseWriter http.ResponseWriter, request *http
 		return
 	}
 	view := detailPageView{
-		Title:       "Order #" + strconv.FormatInt(order.ID, 10),
+		Page:        templates.Page{Title: "Order #" + strconv.FormatInt(order.ID, 10)},
 		DisplayName: current.User.DisplayName,
 		Order:       order,
 		Items:       orderItems,

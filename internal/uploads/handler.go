@@ -205,7 +205,7 @@ func (handler *Handler) renderTaxExemption(responseWriter http.ResponseWriter, r
 		return
 	}
 	if err := handler.renderer.Render(responseWriter, statusCode, "tax-exemption", taxExemptionPage{
-		Title: "Tax Exemption Documents", DisplayName: current.User.DisplayName, Files: files, Error: errorMessage,
+		Page: templates.Page{Title: "Tax Exemption Documents"}, DisplayName: current.User.DisplayName, Files: files, Error: errorMessage,
 	}); err != nil {
 		handler.internalError(responseWriter, request, err)
 	}

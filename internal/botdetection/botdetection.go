@@ -50,14 +50,14 @@ func ProtectSignup(responseWriter http.ResponseWriter, request *http.Request, re
 	if score >= 5 {
 		responseWriter.Header().Set("Retry-After", "60")
 		_ = renderer.Render(responseWriter, http.StatusTooManyRequests, "bot-blocked", blockedPage{
-			Title:   "Request Could Not Be Completed",
+			Page:    templates.Page{Title: "Request Could Not Be Completed"},
 			Heading: "Request could not be completed",
 		})
 		return true
 	}
 	if score >= 2 {
 		_ = renderer.Render(responseWriter, http.StatusForbidden, "bot-blocked", blockedPage{
-			Title:   "Additional Verification Required",
+			Page:    templates.Page{Title: "Additional Verification Required"},
 			Heading: "Additional verification required",
 		})
 		return true

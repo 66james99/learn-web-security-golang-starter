@@ -388,7 +388,7 @@ func stringField(fields map[string]json.RawMessage, name string) (string, error)
 
 func (handler *Handler) renderLogin(responseWriter http.ResponseWriter, statusCode int, errorMessage, returnTo string) error {
 	return handler.renderer.Render(responseWriter, statusCode, "passkey-login", loginPageView{
-		Title: "Sign In with Passkey", Error: errorMessage, ReturnTo: returnTo,
+		Page: templates.Page{Title: "Sign In with Passkey"}, Error: errorMessage, ReturnTo: returnTo,
 	})
 }
 
@@ -398,7 +398,7 @@ func (handler *Handler) renderManage(ctx context.Context, responseWriter http.Re
 		return err
 	}
 	return handler.renderer.Render(responseWriter, statusCode, "passkey-manage", managePageView{
-		Title: "Passkeys", Credentials: credentials, DisplayName: current.User.DisplayName, Error: errorMessage,
+		Page: templates.Page{Title: "Passkeys"}, Credentials: credentials, DisplayName: current.User.DisplayName, Error: errorMessage,
 	})
 }
 

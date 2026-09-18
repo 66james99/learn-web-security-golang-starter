@@ -71,7 +71,7 @@ func (handler *Handler) Dashboard(responseWriter http.ResponseWriter, request *h
 		return
 	}
 	handler.render(responseWriter, request, http.StatusOK, "admin-dashboard", dashboardPage{
-		Title: "Admin Dashboard", DisplayName: current.User.DisplayName,
+		Page: templates.Page{Title: "Admin Dashboard"}, DisplayName: current.User.DisplayName,
 	})
 }
 
@@ -86,7 +86,7 @@ func (handler *Handler) ListProducts(responseWriter http.ResponseWriter, request
 		return
 	}
 	handler.render(responseWriter, request, http.StatusOK, "admin-products", productsPage{
-		Title: "Admin Products", DisplayName: current.User.DisplayName, Products: products,
+		Page: templates.Page{Title: "Admin Products"}, DisplayName: current.User.DisplayName, Products: products,
 	})
 }
 
@@ -166,7 +166,7 @@ func (handler *Handler) Product(responseWriter http.ResponseWriter, request *htt
 		return
 	}
 	handler.render(responseWriter, request, http.StatusOK, "admin-product", productPage{
-		Title: "Admin Product #" + formatID(product.ID), DisplayName: current.User.DisplayName,
+		Page: templates.Page{Title: "Admin Product #" + formatID(product.ID)}, DisplayName: current.User.DisplayName,
 		Product: product, MarginCents: product.PriceCents - product.CostCents,
 	})
 }
@@ -242,14 +242,14 @@ func (handler *Handler) requireProduct(responseWriter http.ResponseWriter, reque
 
 func (handler *Handler) renderProductForm(responseWriter http.ResponseWriter, request *http.Request, statusCode int, current accounts.CurrentSession, title, heading, action string, product ProductInput, submitLabel, errorMessage string) {
 	handler.render(responseWriter, request, statusCode, "admin-product-form", productFormPage{
-		Title: title, DisplayName: current.User.DisplayName, Heading: heading, Action: action,
+		Page: templates.Page{Title: title}, DisplayName: current.User.DisplayName, Heading: heading, Action: action,
 		Product: product, SubmitLabel: submitLabel, Error: errorMessage,
 	})
 }
 
 func (handler *Handler) renderImagePreview(responseWriter http.ResponseWriter, request *http.Request, statusCode int, displayName, errorMessage string, preview *imagepreview.Result) {
 	handler.render(responseWriter, request, statusCode, "image-preview", imagePreviewPage{
-		Title: "Remote Image Preview", DisplayName: displayName, Error: errorMessage, Preview: preview,
+		Page: templates.Page{Title: "Remote Image Preview"}, DisplayName: displayName, Error: errorMessage, Preview: preview,
 	})
 }
 

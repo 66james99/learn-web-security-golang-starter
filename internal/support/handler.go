@@ -80,7 +80,7 @@ func (handler *Handler) Dashboard(responseWriter http.ResponseWriter, request *h
 		return
 	}
 	handler.render(responseWriter, request, http.StatusOK, "support-dashboard", dashboardPage{
-		Title: "Support Dashboard", DisplayName: current.User.DisplayName, IsAdmin: current.User.Role == "admin",
+		Page: templates.Page{Title: "Support Dashboard"}, DisplayName: current.User.DisplayName, IsAdmin: current.User.Role == "admin",
 	})
 }
 
@@ -95,7 +95,7 @@ func (handler *Handler) ListOrders(responseWriter http.ResponseWriter, request *
 		return
 	}
 	handler.render(responseWriter, request, http.StatusOK, "support-orders", ordersPage{
-		Title: "Support Orders", DisplayName: current.User.DisplayName, IsAdmin: current.User.Role == "admin", Orders: allOrders,
+		Page: templates.Page{Title: "Support Orders"}, DisplayName: current.User.DisplayName, IsAdmin: current.User.Role == "admin", Orders: allOrders,
 	})
 }
 
@@ -115,7 +115,7 @@ func (handler *Handler) TaxExemptions(responseWriter http.ResponseWriter, reques
 		return
 	}
 	handler.render(responseWriter, request, http.StatusOK, "support-tax-exemptions", taxExemptionsPage{
-		Title: "Tax Exemption Documents", DisplayName: current.User.DisplayName, IsAdmin: current.User.Role == "admin",
+		Page: templates.Page{Title: "Tax Exemption Documents"}, DisplayName: current.User.DisplayName, IsAdmin: current.User.Role == "admin",
 		Files: files, ImportedDocuments: importedDocuments,
 	})
 }
@@ -194,7 +194,7 @@ func (handler *Handler) Order(responseWriter http.ResponseWriter, request *http.
 		shipping = &decrypted
 	}
 	handler.render(responseWriter, request, http.StatusOK, "support-order", orderPage{
-		Title: "Support Order #" + strconv.FormatInt(order.ID, 10), DisplayName: current.User.DisplayName,
+		Page: templates.Page{Title: "Support Order #" + strconv.FormatInt(order.ID, 10)}, DisplayName: current.User.DisplayName,
 		IsAdmin: current.User.Role == "admin", Order: order, Items: items, Shipping: shipping,
 	})
 }
@@ -250,7 +250,7 @@ func (handler *Handler) readArchive(responseWriter http.ResponseWriter, request 
 
 func (handler *Handler) renderArchivePage(responseWriter http.ResponseWriter, request *http.Request, statusCode int, current accounts.CurrentSession, hasImportedCount bool, importedCount int, errorMessage string) {
 	handler.render(responseWriter, request, statusCode, "support-archive", archivePage{
-		Title: "Import Tax Documents", DisplayName: current.User.DisplayName, IsAdmin: current.User.Role == "admin",
+		Page: templates.Page{Title: "Import Tax Documents"}, DisplayName: current.User.DisplayName, IsAdmin: current.User.Role == "admin",
 		HasImportedCount: hasImportedCount, ImportedCount: importedCount, Error: errorMessage,
 	})
 }

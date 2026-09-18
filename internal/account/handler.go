@@ -129,7 +129,7 @@ func (handler *Handler) TOTPPage(responseWriter http.ResponseWriter, request *ht
 	}
 	if current.User.HasTOTP {
 		if err := handler.renderer.Render(responseWriter, http.StatusOK, "totp-enabled", totpEnabledView{
-			Title: "Two-Step Verification Enabled", DisplayName: current.User.DisplayName, CSRFToken: current.Session.CSRFToken,
+			Page: templates.Page{Title: "Two-Step Verification Enabled"}, DisplayName: current.User.DisplayName, CSRFToken: current.Session.CSRFToken,
 		}); err != nil {
 			handler.internalError(responseWriter, request, err)
 		}
@@ -186,7 +186,7 @@ func (handler *Handler) ConfirmTOTP(responseWriter http.ResponseWriter, request 
 	}
 	_ = handler.logger.Event("totp_enrollment_confirmed", map[string]any{"userId": current.User.ID, "email": current.User.Email})
 	if err := handler.renderer.Render(responseWriter, http.StatusOK, "totp-backup-codes", totpBackupCodesView{
-		Title: "Two-Step Verification Enabled", DisplayName: current.User.DisplayName, BackupCodes: backupCodes,
+		Page: templates.Page{Title: "Two-Step Verification Enabled"}, DisplayName: current.User.DisplayName, BackupCodes: backupCodes,
 	}); err != nil {
 		handler.internalError(responseWriter, request, err)
 	}
@@ -212,7 +212,7 @@ func (handler *Handler) DisableTOTP(responseWriter http.ResponseWriter, request 
 func (handler *Handler) renderPage(responseWriter http.ResponseWriter, statusCode int, current accounts.CurrentSession, errorMessage string) error {
 	isAdmin := current.User.Role == "admin"
 	return handler.renderer.Render(responseWriter, statusCode, "account", pageView{
-		Title:     "Your Account",
+		Page:      templates.Page{Title: "Your Account"},
 		Current:   current,
 		ExpiresAt: formatTimestamp(current.Session.ExpiresAt),
 		Error:     errorMessage,
@@ -274,7 +274,7 @@ func (handler *Handler) internalError(responseWriter http.ResponseWriter, reques
 
 func (handler *Handler) renderTOTPSetup(responseWriter http.ResponseWriter, statusCode int, displayName, secret, qrDataURL, errorMessage string) error {
 	return handler.renderer.Render(responseWriter, statusCode, "totp-setup", totpSetupView{
-		Title: "Set Up Two-Step Verification", DisplayName: displayName, Secret: secret, QRDataURL: template.URL(qrDataURL), Error: errorMessage,
+		Page: templates.Page{Title: "Set Up Two-Step Verification"}, DisplayName: displayName, Secret: secret, QRDataURL: template.URL(qrDataURL), Error: errorMessage,
 	})
 }
 

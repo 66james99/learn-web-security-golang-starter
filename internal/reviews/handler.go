@@ -84,7 +84,7 @@ func (handler *Handler) List(responseWriter http.ResponseWriter, request *http.R
 		return
 	}
 	view := listPageView{
-		Title:       "Your Reviews",
+		Page:        templates.Page{Title: "Your Reviews"},
 		DisplayName: current.User.DisplayName,
 		Reviews:     userReviews,
 		HasReviews:  len(userReviews) > 0,
@@ -180,7 +180,7 @@ func (handler *Handler) requireOwned(responseWriter http.ResponseWriter, request
 
 func (handler *Handler) renderForm(responseWriter http.ResponseWriter, statusCode int, current accounts.CurrentSession, review Review, errorMessage string) error {
 	return handler.renderer.Render(responseWriter, statusCode, "review-form", formPageView{
-		Title:       "Edit Review #" + strconv.FormatInt(review.ID, 10),
+		Page:        templates.Page{Title: "Edit Review #" + strconv.FormatInt(review.ID, 10)},
 		DisplayName: current.User.DisplayName,
 		CSRFToken:   current.Session.CSRFToken,
 		Review:      review,

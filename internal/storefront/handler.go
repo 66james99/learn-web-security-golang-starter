@@ -89,7 +89,7 @@ func (handler *Handler) Storefront(responseWriter http.ResponseWriter, request *
 	}
 
 	view := storefrontView{
-		Title:    "Bearly Secure",
+		Page:     templates.Page{Title: "Bearly Secure"},
 		Current:  current,
 		Products: makeProductCards(products, cartQuantities, csrfToken(current)),
 	}
@@ -123,7 +123,7 @@ func (handler *Handler) Search(responseWriter http.ResponseWriter, request *http
 		resultSummary = fmt.Sprintf("%d result%s for “%s”", len(products), pluralSuffix, query)
 	}
 	view := searchView{
-		Title:         "Search",
+		Page:          templates.Page{Title: "Search"},
 		Current:       current,
 		Query:         query,
 		ResultSummary: resultSummary,
@@ -164,7 +164,7 @@ func (handler *Handler) Product(responseWriter http.ResponseWriter, request *htt
 	remainingInventory := max(int64(0), product.InventoryCount-cartQuantities[product.ID])
 	maximumCartQuantity := min(int64(maxCartQuantity), remainingInventory)
 	view := productView{
-		Title:               product.Name,
+		Page:                templates.Page{Title: product.Name},
 		Current:             current,
 		Product:             product,
 		Reviews:             makeReviewViews(reviews, current),

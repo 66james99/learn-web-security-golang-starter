@@ -176,7 +176,7 @@ func (handler *Handler) Processing(responseWriter http.ResponseWriter, request *
 		return
 	}
 	view := processingPageView{
-		Title:       "PawPal Processing",
+		Page:        templates.Page{Title: "PawPal Processing"},
 		OrderID:     order.ID,
 		CSPNonce:    httpx.CSPNonce(request.Context()),
 		DisplayName: current.User.DisplayName,
@@ -208,7 +208,7 @@ func (handler *Handler) parseCheckoutForm(responseWriter http.ResponseWriter, re
 
 func (handler *Handler) renderPage(responseWriter http.ResponseWriter, statusCode int, current accounts.CurrentSession, items []cart.Item, errorMessage string) error {
 	return handler.renderer.Render(responseWriter, statusCode, "checkout", pageView{
-		Title:       "Checkout",
+		Page:        templates.Page{Title: "Checkout"},
 		Items:       items,
 		TotalCents:  cart.TotalCents(items),
 		CSRFToken:   current.Session.CSRFToken,

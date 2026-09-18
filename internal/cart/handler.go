@@ -49,7 +49,7 @@ func (handler *Handler) Page(responseWriter http.ResponseWriter, request *http.R
 		return
 	}
 	view := pageView{
-		Title:       "Your Cart",
+		Page:        templates.Page{Title: "Your Cart"},
 		DisplayName: current.User.DisplayName,
 		CSRFToken:   current.Session.CSRFToken,
 		Items:       makeItemViews(items),
