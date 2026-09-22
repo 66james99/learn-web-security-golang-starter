@@ -156,6 +156,16 @@ func (handler *Handler) WarehouseOrders(responseWriter http.ResponseWriter, requ
 		httpx.RespondWithJSON(responseWriter, http.StatusForbidden, map[string]string{"error": "Missing orders:read scope"})
 		return
 	}
+	quota, err := handler.apiStore.ConsumeQuota(request.Context(), key.ID)
+	if err != nil {
+		handler.internalError(responseWriter, request, err)
+		return
+	}
+	if !quota.Allowed {
+		RespondWithQuotaExhausted(responseWriter, quota)
+		return
+	}
+	SetQuotaHeaders(responseWriter, quota)
 
 	orders, err := handler.orderStore.ListAll(request.Context())
 	if err != nil {
@@ -171,6 +181,7 @@ func (handler *Handler) WarehouseOrders(responseWriter http.ResponseWriter, requ
 	httpx.RespondWithJSON(responseWriter, http.StatusOK, map[string]any{
 		"integration": "Warehouse Fulfillment Integration",
 		"orders":      responses,
+		"quota":       ToQuotaResponse(quota),
 	})
 }
 

@@ -3,6 +3,7 @@
 package httpserver
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/base64"
 	"fmt"
@@ -19,9 +20,25 @@ import (
 	"github.com/bootdotdev/learn-web-security/internal/httpx"
 	"github.com/bootdotdev/learn-web-security/internal/logging"
 	"github.com/bootdotdev/learn-web-security/internal/templates"
+	"github.com/google/uuid"
 )
 
 type middleware func(http.Handler) http.Handler
+
+type requestIDContextKey struct{}
+
+func requestIDMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(responseWriter http.ResponseWriter, request *http.Request) {
+		requestID, err := uuid.NewRandom()
+		if err != nil {
+			http.Error(responseWriter, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+		responseWriter.Header().Set("X-Request-ID", requestID.String())
+		request = request.WithContext(context.WithValue(request.Context(), requestIDContextKey{}, requestID))
+		next.ServeHTTP(responseWriter, request)
+	})
+}
 
 func applyMiddleware(handler http.Handler, middlewareChain ...middleware) http.Handler {
 	for _, currentMiddleware := range slices.Backward(middlewareChain) {
@@ -109,16 +126,42 @@ func recoverPanics(logger *logging.Logger, renderer *templates.Renderer) middlew
 	}
 }
 
-func LoadShedder(_ int, _ int) func(http.Handler) http.Handler {
+func LoadShedder(maxConcurrent, retryAfterSeconds int) func(http.Handler) http.Handler {
+	if maxConcurrent <= 0 {
+		panic("maximum concurrent requests must be positive")
+	}
+	if retryAfterSeconds <= 0 {
+		panic("retry-after seconds must be positive")
+	}
+	inFlight := make(chan struct{}, maxConcurrent)
 	return func(next http.Handler) http.Handler {
-		return next
+		return http.HandlerFunc(func(responseWriter http.ResponseWriter, request *http.Request) {
+			responseWriter.Header().Set("X-In-Flight-Limit", strconv.Itoa(maxConcurrent))
+			select {
+			case inFlight <- struct{}{}:
+				defer func() { <-inFlight }()
+				next.ServeHTTP(responseWriter, request)
+			default:
+				responseWriter.Header().Set("Retry-After", strconv.Itoa(retryAfterSeconds))
+				httpx.RespondWithJSON(responseWriter, http.StatusServiceUnavailable, map[string]string{"error": "Service is at capacity"})
+			}
+		})
 	}
 }
 
-func SearchThrottle(_ *templates.Renderer) func(http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return next
-	}
+func SearchThrottle(renderer *templates.Renderer) func(http.Handler) http.Handler {
+	return fixedWindowRateLimiter(rateLimitOptions{
+		window:  time.Second,
+		maximum: 5,
+		key: func(*http.Request) string {
+			return "search"
+		},
+		onLimit: func(responseWriter http.ResponseWriter, _ *http.Request, _ rateLimitState) {
+			if err := httpx.RespondWithErrorPage(responseWriter, renderer, http.StatusTooManyRequests, "Search Is Busy", "Try again shortly."); err != nil {
+				http.Error(responseWriter, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			}
+		},
+	})
 }
 
 type rateLimitCounter struct {
@@ -227,9 +270,17 @@ func (limiter *fixedWindowLimiter) reject(responseWriter http.ResponseWriter, re
 }
 
 func fixedWindowRateLimiter(options rateLimitOptions) middleware {
-	validateRateLimitOptions(options)
+	limiter := newFixedWindowLimiter(options)
 	return func(next http.Handler) http.Handler {
-		return next
+		return http.HandlerFunc(func(responseWriter http.ResponseWriter, request *http.Request) {
+			state, limited := limiter.consume(request)
+			if limited {
+				limiter.reject(responseWriter, request, state)
+				return
+			}
+			setRateLimitHeaders(responseWriter, state)
+			next.ServeHTTP(responseWriter, request)
+		})
 	}
 }
 

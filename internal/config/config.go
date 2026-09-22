@@ -32,6 +32,7 @@ type Config struct {
 	DownloadSigningKey         [32]byte
 	AppOrigin                  string
 	Port                       int
+	TrustedProxyHops           int
 	DatabasePath               string
 	AcornFulfillmentDelay      time.Duration
 	MaxRequestBodyBytes        int64
@@ -74,6 +75,10 @@ func Parse(environment map[string]string, workingDirectory string) (Config, erro
 	if port > 65_535 {
 		return Config{}, errors.New("PORT must be no greater than 65535")
 	}
+	trustedProxyHops, err := parseNonNegativeInteger(valueOrDefault(environment, "TRUST_PROXY_HOPS", "0"), "TRUST_PROXY_HOPS")
+	if err != nil {
+		return Config{}, err
+	}
 	appOrigin, err := parseOrigin(valueOrDefault(environment, "APP_ORIGIN", defaultAppOrigin))
 	if err != nil {
 		return Config{}, err
@@ -84,7 +89,7 @@ func Parse(environment map[string]string, workingDirectory string) (Config, erro
 		return Config{}, err
 	}
 
-	activeEncryptionKeyVersion, encryptionKeys, err := parseOptionalEncryptionKeys(environment)
+	activeEncryptionKeyVersion, encryptionKeys, err := parseEncryptionKeys(environment)
 	if err != nil {
 		return Config{}, err
 	}
@@ -99,6 +104,7 @@ func Parse(environment map[string]string, workingDirectory string) (Config, erro
 		DownloadSigningKey:         downloadSigningKey,
 		AppOrigin:                  appOrigin,
 		Port:                       port,
+		TrustedProxyHops:           trustedProxyHops,
 		DatabasePath:               databasePath,
 		AcornFulfillmentDelay:      acornFulfillmentDelay,
 		MaxRequestBodyBytes:        MaxRequestBodyBytes,
@@ -200,21 +206,6 @@ func parseDelay(value string) (time.Duration, error) {
 		return 0, errors.New("ACORN_FULFILLMENT_DELAY_MS is too large")
 	}
 	return time.Duration(milliseconds * float64(time.Millisecond)), nil
-}
-
-func parseOptionalEncryptionKeys(environment map[string]string) (string, map[string][32]byte, error) {
-	_, hasActiveVersion := environment[activeEncryptionVersionEnv]
-	hasEncryptionKey := false
-	for name := range environment {
-		if strings.HasPrefix(name, encryptionKeyEnvPrefix) {
-			hasEncryptionKey = true
-			break
-		}
-	}
-	if !hasActiveVersion && !hasEncryptionKey {
-		return "", nil, nil
-	}
-	return parseEncryptionKeys(environment)
 }
 
 func parseEncryptionKeys(environment map[string]string) (string, map[string][32]byte, error) {

@@ -38,7 +38,10 @@ func (logger *Logger) Event(eventName string, fields map[string]any) error {
 	}
 	maps.Copy(record, fields)
 
-	for _, sensitiveKey := range []string{"sessionId", "resetToken", "resetLink", "secret", "adminNotes", "storagePath"} {
+	for _, sensitiveKey := range []string{
+		"sessionId", "resetToken", "resetLink", "secret", "adminNotes", "storagePath",
+		"email", "shippingName", "shippingAddress", "shippingCity", "shippingRegion", "shippingPostalCode", "originalName",
+	} {
 		if _, ok := record[sensitiveKey]; ok {
 			record[sensitiveKey] = "[REDACTED]"
 		}
